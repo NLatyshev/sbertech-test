@@ -1,31 +1,38 @@
 package com.github.nlatyshev.sbertech;
 
 import com.github.nlatyshev.sbertech.model.Account;
-import com.github.nlatyshev.sbertech.model.AccountDetails;
 import com.github.nlatyshev.sbertech.model.Order;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.Map;
 import java.util.Optional;
 
-/**
- * @author nlatyshev on 16.06.2017.
- */
 public class StockExchange {
-    private Map<AccountDetails, Account> accounts;
+    private static final Logger log = LoggerFactory.getLogger(StockExchange.class);
+    private AccountStorage accounts;
     private OrderStorage orderStorage;
 
-    public StockExchange(Map<AccountDetails, Account> accounts, OrderStorage orderStorage) {
+    public StockExchange(AccountStorage accounts, OrderStorage orderStorage) {
         this.accounts = accounts;
         this.orderStorage = orderStorage;
     }
 
     public void execute(Order order) {
-        Optional<Order> contraryOrder = orderStorage.pullMatchedTo(order);
+        Account account = accounts.findAccount(order.getAccountDetails());
+        if (account != null) {
+            doExecute(order);
+        } else {
+            log.error("Cannot execute order {}: has no account ", order, order.getAccountDetails());
+        }
+    }
+
+    private void doExecute(Order order) {
+        Optional<Order> contraryOrder = orderStorage.takeMatchedTo(order);
         if (contraryOrder.isPresent()) {
             transfer(order.getAmount(),
-                    getAccount(order), getAccount(contraryOrder.get()));
+                    findAccount(contraryOrder.get()), findAccount(order));
             transfer(order.getAmount() * order.getPrice(),
-                    getSettlementAccount(contraryOrder.get()), getSettlementAccount(order));
+                    findSettlementAccount(order), findSettlementAccount(contraryOrder.get()));
         } else {
             orderStorage.store(order);
         }
@@ -36,12 +43,11 @@ public class StockExchange {
         to.setAmount(to.getAmount() + value);
     }
 
-    private Account getAccount(Order order) {
-        return accounts.get(order.getAccountDetails());
+    private Account findAccount(Order order) {
+        return accounts.findAccount(order.getAccountDetails());
     }
 
-    private Account getSettlementAccount(Order order) {
-        return accounts.get(new AccountDetails(order.getAccountDetails().getClient(), "$"));
+    private Account findSettlementAccount(Order order) {
+        return accounts.findSettlementAccount(order.getAccountDetails().getClient());
     }
-
 }

@@ -1,8 +1,7 @@
 package com.github.nlatyshev.sbertech.model;
 
-/**
- * @author nlatyshev on 16.06.2017.
- */
+import java.util.Objects;
+
 public class Account {
     private final AccountDetails accountDetails;
     private int amount;
@@ -22,5 +21,31 @@ public class Account {
 
     public int getAmount() {
         return amount;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        Account account = (Account) o;
+        return Objects.equals(amount, account.amount) &&
+                Objects.equals(accountDetails, account.accountDetails);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(accountDetails, amount);
+    }
+
+    @Override
+    public String toString() {
+        return "Account{" +
+                "accountDetails=" + accountDetails +
+                ", amount=" + amount +
+                '}';
     }
 }

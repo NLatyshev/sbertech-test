@@ -2,9 +2,6 @@ package com.github.nlatyshev.sbertech.model;
 
 import java.util.Objects;
 
-/**
- * @author nlatyshev on 16.06.2017.
- */
 public class AccountDetails {
     private final String client;
     private final String assetType;
@@ -38,5 +35,13 @@ public class AccountDetails {
     @Override
     public int hashCode() {
         return Objects.hash(client, assetType);
+    }
+
+    @Override
+    public String toString() {
+        return "AccountDetails{" +
+                "client='" + client + '\'' +
+                ", assetType='" + assetType + '\'' +
+                '}';
     }
 }

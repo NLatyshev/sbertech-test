@@ -13,7 +13,7 @@ import java.util.Optional;
 public class OrderStorage {
     private final Map<String, List<Order>> ordersByAssetType = new LinkedHashMap<>();
 
-    public Optional<Order> pullMatchedTo(Order order) {
+    public Optional<Order> takeMatchedTo(Order order) {
         List<Order> assetOrders = ordersByAssetType.getOrDefault(order.getAccountDetails().getAssetType(), Collections.<Order>emptyList());
         ListIterator<Order> it = assetOrders.listIterator();
         while (it.hasNext()) {

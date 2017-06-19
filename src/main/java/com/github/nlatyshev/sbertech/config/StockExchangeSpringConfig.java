@@ -1,29 +1,25 @@
 package com.github.nlatyshev.sbertech.config;
 
+import com.github.nlatyshev.sbertech.AccountStorage;
 import com.github.nlatyshev.sbertech.OrderStorage;
 import com.github.nlatyshev.sbertech.StockExchange;
+import com.github.nlatyshev.sbertech.dao.ClientExporter;
+import com.github.nlatyshev.sbertech.dao.ClientImporter;
+import com.github.nlatyshev.sbertech.dao.OrderImporter;
 import com.github.nlatyshev.sbertech.model.Account;
-import com.github.nlatyshev.sbertech.model.AccountDetails;
 import com.github.nlatyshev.sbertech.model.Order;
-import com.github.nlatyshev.sbertech.util.AccountParser;
+import com.github.nlatyshev.sbertech.util.ClientAccountsFormatter;
+import com.github.nlatyshev.sbertech.util.ClientAccountsParser;
 import com.github.nlatyshev.sbertech.util.OrderParser;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import javax.annotation.Resource;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.List;
 import java.util.function.Function;
 
-/**
- * @author nlatyshev on 16.06.2017.
- */
 @Configuration
 public class StockExchangeSpringConfig {
-
-    @Resource
-    private Map<AccountDetails, Account> accounts;
 
     @Bean
     public OrderStorage orderStorage() {
@@ -31,13 +27,18 @@ public class StockExchangeSpringConfig {
     }
 
     @Bean
-    public Map<AccountDetails, Account> accounts() {
-        return new LinkedHashMap<>();
+    public AccountStorage accountStorage() {
+        return new AccountStorage();
     }
 
     @Bean
-    public StockExchange stockExchange(OrderStorage orderStorage) {
-        return new StockExchange(accounts, orderStorage);
+    public StockExchange stockExchange(OrderStorage orderStorage, AccountStorage accountStorage) {
+        return new StockExchange(accountStorage, orderStorage);
+    }
+
+    @Bean
+    public ClientAccountsFormatter clientAccountsFormatter() {
+        return new ClientAccountsFormatter();
     }
 
     @Bean
@@ -51,8 +52,23 @@ public class StockExchangeSpringConfig {
     }
 
     @Bean
-    public Function<String, Account> accountParser(@Qualifier("splitter") Function<String, String[]> splitter) {
-        return splitter.andThen(new AccountParser()::parse);
+    public Function<String, List<Account>> accountParser(@Qualifier("splitter") Function<String, String[]> splitter) {
+        return splitter.andThen(new ClientAccountsParser()::parse);
+    }
+
+    @Bean
+    public ClientImporter clientsImporter(@Qualifier("accountParser") Function<String, List<Account>> accountParser, AccountStorage accounts) {
+        return new ClientImporter(accountParser, accounts);
+    }
+
+    @Bean
+    public ClientExporter clientsExporter(AccountStorage accounts, ClientAccountsFormatter clientAccountsFormatter) {
+        return new ClientExporter(accounts, clientAccountsFormatter);
+    }
+
+    @Bean
+    public OrderImporter orderImporter(@Qualifier("orderParser") Function<String, Order> orderParser) {
+        return new OrderImporter(orderParser);
     }
 
 }

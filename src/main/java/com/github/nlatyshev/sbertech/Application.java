@@ -1,64 +1,66 @@
 package com.github.nlatyshev.sbertech;
 
-import com.github.nlatyshev.sbertech.model.Account;
-import com.github.nlatyshev.sbertech.model.AccountDetails;
-import com.github.nlatyshev.sbertech.model.Order;
-import com.github.nlatyshev.sbertech.util.CsvReader;
+import com.github.nlatyshev.sbertech.config.StockExchangeSpringConfig;
+import com.github.nlatyshev.sbertech.dao.ClientExporter;
+import com.github.nlatyshev.sbertech.dao.ClientImporter;
+import com.github.nlatyshev.sbertech.dao.OrderImporter;
+import org.apache.commons.cli.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Import;
 import org.springframework.core.io.PathResource;
 
-import javax.annotation.Resource;
-import java.util.Map;
-import java.util.function.Function;
-
-/**
- * @author nlatyshev on 16.06.2017.
- */
 @SpringBootApplication
+@Import({StockExchangeSpringConfig.class})
 public class Application implements CommandLineRunner {
-
-    @Resource
-    private Map<AccountDetails, Account> accounts;
 
     @Autowired
     private StockExchange stockExchange;
 
     @Autowired
-    @Qualifier("orderParser")
-    private Function<String, Order> orderParser;
+    private ClientImporter clientImporter;
 
     @Autowired
-    @Qualifier("accountParser")
-    private Function<String, Account> accountParser;
+    private ClientExporter clientExporter;
 
     @Autowired
-    @Qualifier("accountFormatter")
-    private Function<Account, String> accountFormatter;
+    private OrderImporter orderImporter;
+
+    public static void main(String[] args) throws Exception {
+        SpringApplication.run(Application.class, args);
+    }
 
     @Override
     public void run(String... args) throws Exception {
-        importClients(args[0]);
+        Options options = new Options()
+                .addOption(OptionBuilder
+                        .hasArg()
+                        .isRequired()
+                        .withDescription("path to input clients file")
+                        .create("clientsIn"))
+                .addOption(OptionBuilder
+                        .hasArg()
+                        .isRequired()
+                        .withDescription("path to orders file")
+                        .create("orders"))
+                .addOption(OptionBuilder
+                        .hasArg()
+                        .isRequired()
+                        .withDescription("path to file to write clients current state")
+                        .create("clientsOut"));
+        try {
+            CommandLine cl = new BasicParser().parse(options, args);
 
-        executeOrders(args[1]);
+            clientImporter.importClients(new PathResource(cl.getOptionValue("clientsIn")));
 
-        exportAccounts(args[2]);
-    }
+            orderImporter.importOrders(new PathResource(cl.getOptionValue("orders")), stockExchange::execute);
 
-    private void exportAccounts(String arg) {
-        accounts.values().stream().forEach(account ->
-                System.out.println(accountFormatter.apply(account))
-        );
-    }
-
-    private void executeOrders(String arg) {
-        new CsvReader<>(new PathResource(arg), orderParser).forEach(stockExchange::execute);
-    }
-
-    private void importClients(String arg) {
-        new CsvReader<>(new PathResource(arg), accountParser).forEach((account ->
-                accounts.put(account.getAccountDetails(), account)));
+            clientExporter.exportClients(new PathResource(cl.getOptionValue("clientsOut")));
+        } catch (ParseException e) {
+            System.out.println(e.getMessage());
+            new HelpFormatter().printHelp("Stock Exchange", options, true);
+        }
     }
 }
