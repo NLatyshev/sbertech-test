@@ -1,3 +1,19 @@
+# How to build and run
+Build application
+```
+mvn clean install
+```
+
+Run using command line like
+```
+java -jar sbertech-test-1.0-SNAPSHOT.jar -clientsIn clients.txt -orders orders.txt -clientsOut out.txt
+```
+
+Or just use maven spring boot plugin
+```
+mvn spring-boot:run -Drun.arguments=-clientsIn,clients.txt,-orders,orders.txt,-clientsOut,out.txt
+```
+
 # Описание задачи
 
 Напишите программу для простейшего матчинга заявок на упрощенной бирже. На бирже торгуется четыре ценных бумаги ("A", "B", "C" и "D"). Базовая валюта биржи - доллар ("$"). 
